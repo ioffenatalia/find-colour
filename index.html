@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Colour Game</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
@@ -18,6 +21,7 @@
             align-items: center;
             padding: 0;
             overflow: hidden;
+            touch-action: manipulation;
         }
         
         .container {
@@ -78,10 +82,11 @@
             color: white;
             transition: transform 0.2s;
             box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+            touch-action: manipulation;
         }
         
-        .speaker-btn:hover {
-            transform: scale(1.1);
+        .speaker-btn:active {
+            transform: scale(0.95);
         }
         
         .counter {
@@ -123,27 +128,29 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s;
-            border: 5px solid; /* Уменьшили с 6px */
+            border: 5px solid;
             box-shadow: 0 6px 15px rgba(0,0,0,0.1);
             padding: 10px;
+            touch-action: manipulation;
         }
         
-        .colour-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        .colour-item:active {
+            transform: scale(0.95);
         }
         
         .colour-item img {
-            width: 70px; /* Было 80px */
+            width: 70px;
             height: 70px;
             object-fit: contain;
             margin-bottom: 8px;
+            pointer-events: none;
         }
         
         .item-name {
-            font-size: 16px; /* Было 18px */
+            font-size: 16px;
             font-weight: bold;
             color: #333;
+            pointer-events: none;
         }
         
         /* СООБЩЕНИЯ - КОМПАКТНЕЕ */
@@ -158,7 +165,7 @@
         }
         
         .message {
-            font-size: 22px; /* Было 26px */
+            font-size: 22px;
             padding: 10px 18px;
             border-radius: 12px;
             margin: 4px auto;
@@ -196,10 +203,11 @@
             justify-content: center;
             gap: 8px;
             flex-shrink: 0;
+            touch-action: manipulation;
         }
         
-        .menu-btn:hover {
-            transform: scale(1.05);
+        .menu-btn:active {
+            transform: scale(0.95);
             background: #ff8c00;
         }
 
@@ -210,7 +218,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -222,7 +230,26 @@
             padding: 40px;
             border-radius: 20px;
             text-align: center;
-            max-width: 400px;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .start-content h1 {
+            margin-bottom: 20px;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 0 #ffd166;
+        }
+
+        .start-content p {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .start-content p.small {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
         }
 
         .start-btn {
@@ -234,12 +261,15 @@
             font-size: 24px;
             cursor: pointer;
             margin-top: 20px;
-            transition: transform 0.2s;
+            transition: all 0.2s;
             box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+            touch-action: manipulation;
+            font-weight: bold;
         }
 
-        .start-btn:hover {
-            transform: scale(1.05);
+        .start-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
         }
         
         /* АНИМАЦИИ */
@@ -260,6 +290,17 @@
         
         .shake {
             animation: shake 0.5s;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
         
         /* МЕДИА-ЗАПРОСЫ */
@@ -339,6 +380,15 @@
             .item-name {
                 font-size: 14px;
             }
+
+            .start-content {
+                padding: 30px 20px;
+            }
+
+            .start-btn {
+                padding: 18px 35px;
+                font-size: 22px;
+            }
         }
         
         @media (max-width: 400px) {
@@ -376,12 +426,10 @@
     <!-- НАЧАЛЬНЫЙ ЭКРАН -->
     <div class="start-screen" id="startScreen">
         <div class="start-content">
-            <h1 style="margin-bottom: 20px;">🎨 Colour Game</h1>
-            <p style="font-size: 18px; margin-bottom: 10px;">Tap the button to start!</p>
-            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
-                (This will enable sound)
-            </p>
-            <button class="start-btn" id="startBtn">▶️ Start Game</button>
+            <h1>🎨 Colour Game</h1>
+            <p>Ready to play?</p>
+            <p class="small">Tap the button below to enable sound</p>
+            <button class="start-btn" id="startBtn">▶️ START GAME</button>
         </div>
     </div>
 
@@ -409,9 +457,10 @@
         <div class="messages-container">
             <div class="message correct-message" id="correctMessage">🎉 Excellent!</div>
             <div class="message wrong-message" id="wrongMessage">❌ Try again!</div>
- <button class="menu-btn" onclick="window.location.href='index.html'">
-    🏠 Menu
-</button>
+            <button class="menu-btn" onclick="window.location.href='index.html'">
+                🏠 Menu
+            </button>
+        </div>
     </div>
 
     <script>
@@ -437,9 +486,8 @@
         // ПЕРЕМЕННЫЕ
         let currentColour = null;
         let score = 0;
-        let canInteract = true;
+        let canInteract = false;
         let gameStarted = false;
-        let autoPlayEnabled = false;
 
         // ЭЛЕМЕНТЫ
         const instructionEl = document.getElementById('instruction');
@@ -453,16 +501,24 @@
 
         // ОЗВУЧКА
         function speak(text) {
-            // Для мобильных устройств важно инициализировать speechSynthesis
-            window.speechSynthesis.cancel();
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.7;
-            utterance.pitch = 1.0;
-            utterance.onend = () => canInteract = true;
-            
-            window.speechSynthesis.speak(utterance);
+            return new Promise((resolve) => {
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.7;
+                utterance.pitch = 1.0;
+                utterance.onend = () => {
+                    canInteract = true;
+                    resolve();
+                };
+                utterance.onerror = () => {
+                    canInteract = true;
+                    resolve();
+                };
+                
+                window.speechSynthesis.speak(utterance);
+            });
         }
 
         // НОВЫЙ РАУНД
@@ -474,17 +530,8 @@
             
             createAllItems();
             
-            instructionEl.innerHTML = `Listen and find <strong>${currentColour.audio}</strong>!`;
-            
-            // На мобильных НЕ запускаем автоматически
-            // Пользователь должен нажать кнопку динамика
-            if (autoPlayEnabled) {
-                canInteract = false;
-                setTimeout(() => speak(`Find ${currentColour.audio}.`), 500);
-            } else {
-                canInteract = true;
-                instructionEl.innerHTML = `Tap 🔊 to hear the colour!`;
-            }
+            instructionEl.innerHTML = `Tap 🔊 to hear which colour to find!`;
+            canInteract = true;
         }
 
         // СОЗДАТЬ ВСЕ 6 ПРЕДМЕТОВ
@@ -504,14 +551,24 @@
                     <div class="item-name">${item.name.toUpperCase()}</div>
                 `;
                 
-                itemElement.addEventListener('click', () => handleItemClick(item, itemElement));
+                // Используем как click, так и touchend для лучшей совместимости
+                itemElement.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleItemClick(item, itemElement);
+                });
+                
+                itemElement.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    handleItemClick(item, itemElement);
+                });
+                
                 itemsGrid.appendChild(itemElement);
             });
         }
 
         // КЛИК ПО ПРЕДМЕТУ
         function handleItemClick(item, itemElement) {
-            if (!canInteract) return;
+            if (!canInteract || !gameStarted) return;
             
             if (item.colour === currentColour.name) {
                 score++;
@@ -527,20 +584,20 @@
                 correctMessage.style.display = 'block';
                 
                 // Правильное аудио
+                canInteract = false;
                 if (item.plural) {
                     speak(`Yes! The ${item.name} are ${currentColour.audio}!`);
                 } else {
                     speak(`Yes! The ${item.name} is ${currentColour.audio}!`);
                 }
                 
-                canInteract = false;
                 setTimeout(() => {
                     correctMessage.style.display = 'none';
                     itemElement.classList.remove('bounce');
                     itemElement.style.boxShadow = '0 6px 15px rgba(0,0,0,0.1)';
                     itemElement.style.borderWidth = '5px';
                     startNewRound();
-                }, 1500);
+                }, 1800);
             } else {
                 wrongMessage.style.display = 'block';
                 itemElement.classList.add('shake');
@@ -560,36 +617,59 @@
         }
 
         // КНОПКА АУДИО
-        speakerBtn.onclick = function() {
-            if (currentColour) {
+        speakerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (currentColour && gameStarted) {
                 speak(`Find ${currentColour.audio}.`);
                 this.classList.add('bounce');
                 setTimeout(() => this.classList.remove('bounce'), 500);
             }
-        };
+        });
+
+        speakerBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            if (currentColour && gameStarted) {
+                speak(`Find ${currentColour.audio}.`);
+                this.classList.add('bounce');
+                setTimeout(() => this.classList.remove('bounce'), 500);
+            }
+        });
 
         // СТАРТ ИГРЫ
-        startBtn.onclick = function() {
-            // Активируем speechSynthesis через действие пользователя
+        function initGame() {
+            console.log('Starting game...');
+            
+            // Инициализация speechSynthesis
             window.speechSynthesis.cancel();
+            
+            // Пробуем загрузить голоса
+            if (window.speechSynthesis.getVoices().length === 0) {
+                window.speechSynthesis.addEventListener('voiceschanged', function() {
+                    console.log('Voices loaded');
+                });
+            }
             
             // Скрываем начальный экран
             startScreen.style.display = 'none';
             gameStarted = true;
             
-            // Проверяем, можем ли мы автоматически воспроизводить звук
-            // На большинстве мобильных это не сработает, но попробуем
-            const testUtterance = new SpeechSynthesisUtterance('');
-            window.speechSynthesis.speak(testUtterance);
-            
+            // Запускаем первый раунд
             setTimeout(() => {
-                // Пробуем определить, работает ли автовоспроизведение
-                if (window.speechSynthesis.speaking) {
-                    autoPlayEnabled = true;
-                }
                 startNewRound();
-            }, 100);
-        };
+            }, 300);
+        }
+
+        // Обработчики для кнопки START
+        startBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            initGame();
+        });
+
+        startBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            initGame();
+        });
 
         // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
         function shuffleArray(array) {
@@ -600,8 +680,10 @@
             return array;
         }
 
-        // НЕ ЗАПУСКАЕМ АВТОМАТИЧЕСКИ
-        // Ждем действия пользователя через начальный экран
+        // Предзагрузка голосов при загрузке страницы
+        window.addEventListener('load', function() {
+            window.speechSynthesis.getVoices();
+        });
     </script>
 </body>
 </html>
