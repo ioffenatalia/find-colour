@@ -203,6 +203,25 @@
             background: #ff8c00;
         }
         
+        /* КНОПКА РЕСТАРТ АУДИО (новая) */
+        .audio-restart-btn {
+            background: #6a89cc;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 3px 0;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(106, 137, 204, 0.4);
+        }
+        
+        .audio-restart-btn:hover {
+            transform: scale(1.05);
+            background: #5a79bc;
+        }
+        
         /* АНИМАЦИИ */
         @keyframes bounce {
             0%, 100% { transform: scale(1); }
@@ -221,6 +240,11 @@
         
         .shake {
             animation: shake 0.5s;
+        }
+        
+        @keyframes messageAppear {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         /* МЕДИА-ЗАПРОСЫ */
@@ -268,6 +292,11 @@
             .menu-btn {
                 padding: 8px 20px;
                 font-size: 16px;
+            }
+            
+            .audio-restart-btn {
+                padding: 6px 16px;
+                font-size: 14px;
             }
         }
         
@@ -331,6 +360,17 @@
                 gap: 10px;
             }
         }
+        
+        /* Стиль для стартового состояния на мобильных */
+        .speaker-btn.start-mode {
+            background: #ff6b6b;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
     </style>
 </head>
 <body>
@@ -354,13 +394,19 @@
             </div>
         </div>
         
-        <!-- СООБЩЕНИЯ И КНОПКА МЕНЮ -->
+        <!-- СООБЩЕНИЯ И КНОПКИ -->
         <div class="messages-container">
             <div class="message correct-message" id="correctMessage">🎉 Excellent!</div>
             <div class="message wrong-message" id="wrongMessage">❌ Try again!</div>
- <button class="menu-btn" onclick="window.location.href='index.html'">
-    🏠 Menu
-</button>
+            
+            <button class="audio-restart-btn" id="audioRestartBtn" style="display: none;">
+                🔄 Restart Audio
+            </button>
+            
+            <button class="menu-btn" onclick="window.location.href='index.html'">
+                🏠 Menu
+            </button>
+        </div>
     </div>
 
     <script>
@@ -387,6 +433,8 @@
         let currentColour = null;
         let score = 0;
         let canInteract = true;
+        let gameStarted = false;
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
         // ЭЛЕМЕНТЫ
         const instructionEl = document.getElementById('instruction');
@@ -395,20 +443,120 @@
         const correctMessage = document.getElementById('correctMessage');
         const wrongMessage = document.getElementById('wrongMessage');
         const scoreEl = document.getElementById('score');
+        const audioRestartBtn = document.getElementById('audioRestartBtn');
+
+        // ИНИЦИАЛИЗАЦИЯ ИГРЫ
+        function initGame() {
+            console.log("Game initialized");
+            
+            if (isMobile && !gameStarted) {
+                // Для мобильных - специальный стартовый режим
+                instructionEl.innerHTML = "🔴 Tap the RED speaker button to start!";
+                speakerBtn.classList.add('start-mode');
+                speakerBtn.innerHTML = "▶";
+                speakerBtn.style.background = "#ff6b6b";
+                
+                speakerBtn.onclick = function startGame() {
+                    speakerBtn.classList.remove('start-mode');
+                    speakerBtn.innerHTML = "🔊";
+                    speakerBtn.style.background = "#4CAF50";
+                    gameStarted = true;
+                    
+                    // "Разблокируем" аудио на мобильных
+                    const testUtterance = new SpeechSynthesisUtterance('');
+                    window.speechSynthesis.speak(testUtterance);
+                    setTimeout(() => {
+                        window.speechSynthesis.cancel();
+                        startNewRound();
+                        
+                        // Устанавливаем обычный обработчик
+                        speakerBtn.onclick = function() {
+                            if (currentColour) {
+                                speak(`Find ${currentColour.audio}.`);
+                                this.classList.add('bounce');
+                                setTimeout(() => this.classList.remove('bounce'), 500);
+                            }
+                        };
+                    }, 100);
+                };
+            } else {
+                // Для десктопа запускаем сразу
+                startNewRound();
+                speakerBtn.onclick = function() {
+                    if (currentColour) {
+                        speak(`Find ${currentColour.audio}.`);
+                        this.classList.add('bounce');
+                        setTimeout(() => this.classList.remove('bounce'), 500);
+                    }
+                };
+            }
+            
+            // Показываем кнопку рестарта аудио на мобильных
+            if (isMobile) {
+                audioRestartBtn.style.display = 'inline-block';
+                audioRestartBtn.onclick = function() {
+                    restartAudioSystem();
+                    this.classList.add('bounce');
+                    setTimeout(() => this.classList.remove('bounce'), 500);
+                };
+            }
+        }
+
+        // ПЕРЕЗАГРУЗКА АУДИО-СИСТЕМЫ
+        function restartAudioSystem() {
+            window.speechSynthesis.cancel();
+            
+            // Создаем новый utterance для "разблокировки"
+            const utterance = new SpeechSynthesisUtterance('');
+            utterance.onend = function() {
+                console.log("Audio system restarted");
+                if (currentColour) {
+                    speak(`Find ${currentColour.audio}.`);
+                }
+            };
+            
+            window.speechSynthesis.speak(utterance);
+            setTimeout(() => window.speechSynthesis.cancel(), 50);
+        }
 
         // ОЗВУЧКА
         function speak(text) {
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.7;
-            utterance.pitch = 1.0;
-            utterance.onend = () => canInteract = true;
-            window.speechSynthesis.speak(utterance);
+            
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.7;
+                utterance.pitch = 1.0;
+                
+                utterance.onstart = () => {
+                    console.log("Speech started:", text);
+                    canInteract = false;
+                };
+                
+                utterance.onend = () => {
+                    console.log("Speech ended");
+                    canInteract = true;
+                };
+                
+                utterance.onerror = (event) => {
+                    console.error("Speech error:", event);
+                    canInteract = true;
+                    
+                    // На мобильных показываем текст, если звук не работает
+                    if (isMobile) {
+                        instructionEl.innerHTML = `Say: <strong style="color:${currentColour.value}">${text}</strong>`;
+                    }
+                };
+                
+                window.speechSynthesis.speak(utterance);
+            }, 100);
         }
 
         // НОВЫЙ РАУНД
         function startNewRound() {
+            if (!gameStarted && isMobile) return;
+            
             currentColour = colours[Math.floor(Math.random() * colours.length)];
             
             correctMessage.style.display = 'none';
@@ -416,10 +564,16 @@
             
             createAllItems();
             
-            instructionEl.innerHTML = `Listen and find <strong>${currentColour.audio}</strong>!`;
+            instructionEl.innerHTML = `Find <strong style="color:${currentColour.value}">${currentColour.audio.toUpperCase()}</strong>!`;
             
             canInteract = false;
-            setTimeout(() => speak(`Find ${currentColour.audio}.`), 500);
+            
+            if (isMobile) {
+                // На мобильных добавляем задержку для стабильности
+                setTimeout(() => speak(`Find ${currentColour.audio}.`), 800);
+            } else {
+                setTimeout(() => speak(`Find ${currentColour.audio}.`), 500);
+            }
         }
 
         // СОЗДАТЬ ВСЕ 6 ПРЕДМЕТОВ
@@ -446,7 +600,7 @@
 
         // КЛИК ПО ПРЕДМЕТУ
         function handleItemClick(item, itemElement) {
-            if (!canInteract) return;
+            if (!canInteract || !gameStarted) return;
             
             if (item.colour === currentColour.name) {
                 score++;
@@ -494,15 +648,6 @@
             }
         }
 
-        // КНОПКА АУДИО
-        speakerBtn.onclick = function() {
-            if (currentColour) {
-                speak(`Find ${currentColour.audio}.`);
-                this.classList.add('bounce');
-                setTimeout(() => this.classList.remove('bounce'), 500);
-            }
-        };
-
         // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -512,8 +657,23 @@
             return array;
         }
 
-        // ЗАПУСК
-        window.onload = startNewRound;
+        // ЗАПУСК ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+        window.addEventListener('DOMContentLoaded', () => {
+            initGame();
+        });
+        
+        // Дополнительные обработчики для мобильных
+        if (isMobile) {
+            // Обработчик тача по всему экрану (дополнительная разблокировка)
+            document.addEventListener('touchstart', function initTouch() {
+                if (!gameStarted) {
+                    // Просто активируем аудио контекст
+                    const testUtterance = new SpeechSynthesisUtterance('');
+                    window.speechSynthesis.speak(testUtterance);
+                    window.speechSynthesis.cancel();
+                }
+            }, { once: true });
+        }
     </script>
 </body>
 </html>
