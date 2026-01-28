@@ -202,25 +202,44 @@
             transform: scale(1.05);
             background: #ff8c00;
         }
-        
-        /* КНОПКА СТАРТ (для мобильных) */
+
+        /* НАЧАЛЬНЫЙ ЭКРАН */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .start-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+        }
+
         .start-btn {
-            background: #ff6b6b;
+            background: #4CAF50;
             color: white;
             border: none;
-            border-radius: 20px;
-            padding: 15px 30px;
-            font-size: 22px;
+            border-radius: 15px;
+            padding: 20px 40px;
+            font-size: 24px;
             cursor: pointer;
-            margin: 10px 0;
+            margin-top: 20px;
             transition: transform 0.2s;
-            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
-            animation: pulse 2s infinite;
+            box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
         }
-        
+
         .start-btn:hover {
             transform: scale(1.05);
-            background: #ff5252;
         }
         
         /* АНИМАЦИИ */
@@ -241,16 +260,6 @@
         
         .shake {
             animation: shake 0.5s;
-        }
-        
-        @keyframes messageAppear {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
         }
         
         /* МЕДИА-ЗАПРОСЫ */
@@ -298,11 +307,6 @@
             .menu-btn {
                 padding: 8px 20px;
                 font-size: 16px;
-            }
-            
-            .start-btn {
-                padding: 12px 25px;
-                font-size: 20px;
             }
         }
         
@@ -369,21 +373,26 @@
     </style>
 </head>
 <body>
+    <!-- НАЧАЛЬНЫЙ ЭКРАН -->
+    <div class="start-screen" id="startScreen">
+        <div class="start-content">
+            <h1 style="margin-bottom: 20px;">🎨 Colour Game</h1>
+            <p style="font-size: 18px; margin-bottom: 10px;">Tap the button to start!</p>
+            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                (This will enable sound)
+            </p>
+            <button class="start-btn" id="startBtn">▶️ Start Game</button>
+        </div>
+    </div>
+
     <div class="container">
         <!-- ВЕРХНЯЯ ЧАСТЬ -->
         <div class="header">
             <h1>🎨 Find the Colour!</h1>
-            <div id="instruction">Tap START button to begin!</div>
+            <div id="instruction">Tap the speaker button to hear the colour!</div>
         </div>
         
-        <!-- КНОПКА СТАРТ (видна только на мобильных сначала) -->
-        <div id="startContainer" style="display: none;">
-            <button class="start-btn" id="startBtn">
-                🎮 START GAME
-            </button>
-        </div>
-        
-        <!-- КНОПКА ДИНАМИКА И СЧЕТЧИК - КОМПАКТНЕЕ -->
+        <!-- КНОПКА И СЧЕТЧИК РЯДОМ -->
         <div class="top-controls">
             <button class="speaker-btn" id="speakerBtn">🔊</button>
             <div class="counter">Found: <span id="score">0</span></div>
@@ -396,15 +405,13 @@
             </div>
         </div>
         
-        <!-- СООБЩЕНИЯ И КНОПКИ -->
+        <!-- СООБЩЕНИЯ И КНОПКА МЕНЮ -->
         <div class="messages-container">
             <div class="message correct-message" id="correctMessage">🎉 Excellent!</div>
             <div class="message wrong-message" id="wrongMessage">❌ Try again!</div>
-            
-            <button class="menu-btn" onclick="window.location.href='index.html'">
-                🏠 Menu
-            </button>
-        </div>
+ <button class="menu-btn" onclick="window.location.href='index.html'">
+    🏠 Menu
+</button>
     </div>
 
     <script>
@@ -431,7 +438,8 @@
         let currentColour = null;
         let score = 0;
         let canInteract = true;
-        let gameInitialized = false;
+        let gameStarted = false;
+        let autoPlayEnabled = false;
 
         // ЭЛЕМЕНТЫ
         const instructionEl = document.getElementById('instruction');
@@ -440,47 +448,25 @@
         const correctMessage = document.getElementById('correctMessage');
         const wrongMessage = document.getElementById('wrongMessage');
         const scoreEl = document.getElementById('score');
-        const startContainer = document.getElementById('startContainer');
+        const startScreen = document.getElementById('startScreen');
         const startBtn = document.getElementById('startBtn');
 
-        // Проверка мобильного устройства
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-        // ОЗВУЧКА - ПРОСТАЯ И НАДЕЖНАЯ
+        // ОЗВУЧКА
         function speak(text) {
-            // Всегда останавливаем предыдущую речь
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-            }
+            // Для мобильных устройств важно инициализировать speechSynthesis
+            window.speechSynthesis.cancel();
             
-            setTimeout(() => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                utterance.rate = 0.7;
-                utterance.pitch = 1.0;
-                
-                utterance.onstart = () => {
-                    canInteract = false;
-                };
-                
-                utterance.onend = () => {
-                    canInteract = true;
-                };
-                
-                utterance.onerror = () => {
-                    canInteract = true;
-                    // Если звук не работает, показываем текст
-                    instructionEl.innerHTML = `Find: <strong style="color:${currentColour.value}">${currentColour.audio.toUpperCase()}</strong>`;
-                };
-                
-                window.speechSynthesis.speak(utterance);
-            }, 100);
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.7;
+            utterance.pitch = 1.0;
+            utterance.onend = () => canInteract = true;
+            
+            window.speechSynthesis.speak(utterance);
         }
 
         // НОВЫЙ РАУНД
         function startNewRound() {
-            if (!gameInitialized) return;
-            
             currentColour = colours[Math.floor(Math.random() * colours.length)];
             
             correctMessage.style.display = 'none';
@@ -488,14 +474,17 @@
             
             createAllItems();
             
-            instructionEl.innerHTML = `Find <strong style="color:${currentColour.value}">${currentColour.audio.toUpperCase()}</strong>!`;
+            instructionEl.innerHTML = `Listen and find <strong>${currentColour.audio}</strong>!`;
             
-            canInteract = false;
-            
-            // Начинаем раунд с озвучки
-            setTimeout(() => {
-                speak(`Find ${currentColour.audio}.`);
-            }, 500);
+            // На мобильных НЕ запускаем автоматически
+            // Пользователь должен нажать кнопку динамика
+            if (autoPlayEnabled) {
+                canInteract = false;
+                setTimeout(() => speak(`Find ${currentColour.audio}.`), 500);
+            } else {
+                canInteract = true;
+                instructionEl.innerHTML = `Tap 🔊 to hear the colour!`;
+            }
         }
 
         // СОЗДАТЬ ВСЕ 6 ПРЕДМЕТОВ
@@ -522,7 +511,7 @@
 
         // КЛИК ПО ПРЕДМЕТУ
         function handleItemClick(item, itemElement) {
-            if (!canInteract || !gameInitialized) return;
+            if (!canInteract) return;
             
             if (item.colour === currentColour.name) {
                 score++;
@@ -570,53 +559,37 @@
             }
         }
 
-        // ИНИЦИАЛИЗАЦИЯ ИГРЫ
-        function initGame() {
-            console.log("Initializing game...");
-            
-            if (isMobile && !gameInitialized) {
-                // На мобильных показываем кнопку START
-                startContainer.style.display = 'block';
-                instructionEl.innerHTML = "Tap START button to begin the game!";
-                
-                // Скрываем предметы до старта
-                itemsGrid.innerHTML = '';
-                
-                startBtn.onclick = function() {
-                    // "Разблокируем" аудио системой
-                    const testUtterance = new SpeechSynthesisUtterance('Start');
-                    window.speechSynthesis.speak(testUtterance);
-                    setTimeout(() => {
-                        window.speechSynthesis.cancel();
-                        
-                        gameInitialized = true;
-                        startContainer.style.display = 'none';
-                        startNewRound();
-                        
-                        // Настраиваем кнопку динамика
-                        speakerBtn.onclick = function() {
-                            if (currentColour) {
-                                speak(`Find ${currentColour.audio}.`);
-                                this.classList.add('bounce');
-                                setTimeout(() => this.classList.remove('bounce'), 500);
-                            }
-                        };
-                    }, 200);
-                };
-            } else {
-                // На десктопе запускаем сразу
-                gameInitialized = true;
-                startNewRound();
-                
-                speakerBtn.onclick = function() {
-                    if (currentColour) {
-                        speak(`Find ${currentColour.audio}.`);
-                        this.classList.add('bounce');
-                        setTimeout(() => this.classList.remove('bounce'), 500);
-                    }
-                };
+        // КНОПКА АУДИО
+        speakerBtn.onclick = function() {
+            if (currentColour) {
+                speak(`Find ${currentColour.audio}.`);
+                this.classList.add('bounce');
+                setTimeout(() => this.classList.remove('bounce'), 500);
             }
-        }
+        };
+
+        // СТАРТ ИГРЫ
+        startBtn.onclick = function() {
+            // Активируем speechSynthesis через действие пользователя
+            window.speechSynthesis.cancel();
+            
+            // Скрываем начальный экран
+            startScreen.style.display = 'none';
+            gameStarted = true;
+            
+            // Проверяем, можем ли мы автоматически воспроизводить звук
+            // На большинстве мобильных это не сработает, но попробуем
+            const testUtterance = new SpeechSynthesisUtterance('');
+            window.speechSynthesis.speak(testUtterance);
+            
+            setTimeout(() => {
+                // Пробуем определить, работает ли автовоспроизведение
+                if (window.speechSynthesis.speaking) {
+                    autoPlayEnabled = true;
+                }
+                startNewRound();
+            }, 100);
+        };
 
         // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
         function shuffleArray(array) {
@@ -627,11 +600,8 @@
             return array;
         }
 
-        // ЗАПУСК ПРИ ЗАГРУЗКЕ
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log("Page loaded, isMobile:", isMobile);
-            initGame();
-        });
+        // НЕ ЗАПУСКАЕМ АВТОМАТИЧЕСКИ
+        // Ждем действия пользователя через начальный экран
     </script>
 </body>
 </html>
